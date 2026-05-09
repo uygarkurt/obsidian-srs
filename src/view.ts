@@ -7,9 +7,43 @@ import {
     TFile,
 } from "obsidian";
 import ObsidianSrsPlugin from "./main";
-import { IdInsert, ItemContent } from './selection';
+import { IdInsert, ItemContent } from "./selection";
 
-export type ReviewMode = "question" | "answer" | "empty";
+export const REVIEW_VIEW_TYPE = "store-review-view";
+export type ReviewMode = "question" | "answer" | "single" | "empty";
+
+function getStartReviewMode(plugin: ObsidianSrsPlugin): ReviewMode {
+    return plugin.settings.singleSidedNotes ? "single" : "question";
+}
+
+function openFile(view: ReviewView) {
+    const leaf = view.app.workspace.getUnpinnedLeaf();
+    leaf.setViewState({
+        type: "markdown",
+        state: {
+            file: view.file.path,
+        },
+    });
+    view.app.workspace.setActiveLeaf(leaf);
+}
+
+function reviewItem(view: ReviewView, option: string) {
+    view.plugin.store.reviewId(view.item, option);
+    const item = view.plugin.store.getNext();
+    const state: any = { mode: "empty" };
+    if (item != null) {
+        const path = view.plugin.store.getFilePath(item);
+        if (path != null) {
+            state.file = path;
+            state.item = view.plugin.store.getNextId();
+            state.mode = getStartReviewMode(view.plugin);
+        }
+    }
+    view.leaf.setViewState({
+        type: REVIEW_VIEW_TYPE,
+        state: state,
+    });
+}
 
 export class ReviewView extends FileView {
     plugin: ObsidianSrsPlugin;
@@ -18,6 +52,7 @@ export class ReviewView extends FileView {
 
     questionSubView: ReviewQuestionView;
     answerSubView: ReviewAnswerView;
+    singleSidedSubView: ReviewSingleSidedView;
     emptySubView: ReviewEmptyView;
 
     currentSubView: ReviewSubView;
@@ -36,6 +71,7 @@ export class ReviewView extends FileView {
 
         this.questionSubView = new ReviewQuestionView(this);
         this.answerSubView = new ReviewAnswerView(this);
+        this.singleSidedSubView = new ReviewSingleSidedView(this);
         this.emptySubView = new ReviewEmptyView(this);
 
         this.currentSubView = this.emptySubView;
@@ -65,6 +101,9 @@ export class ReviewView extends FileView {
         } else if (this.mode == "answer") {
             this.currentSubView = this.answerSubView;
             this.currentSubView.show();
+        } else if (this.mode == "single") {
+            this.currentSubView = this.singleSidedSubView;
+            this.currentSubView.show();
         }
 
         console.log("Loading item " + this.item + "...");
@@ -74,22 +113,33 @@ export class ReviewView extends FileView {
                 console.log(content);
                 let question: string = this.file.basename;
                 let answer: string = content.trim();
+                let fullContent: string = content.trim();
                 const metadata = this.app.metadataCache.getFileCache(this.file);
 
                 if (metadata) {
                     if (metadata.sections) {
-
                         let sections = [...metadata.sections];
                         let idInserts: IdInsert[] = [];
                         let items: Record<string, ItemContent> = {};
-                        this.plugin.settings.itemSelectors.forEach((selector) => {
-                            let newItems = selector.process(sections, idInserts, content, metadata);
-                            items = {...items, ...newItems};
-                        });
+                        this.plugin.settings.itemSelectors.forEach(
+                            (selector) => {
+                                let newItems = selector.process(
+                                    sections,
+                                    idInserts,
+                                    content,
+                                    metadata
+                                );
+                                items = { ...items, ...newItems };
+                            }
+                        );
 
                         console.log(sections);
                         console.log(idInserts);
-                        console.log("Found ", Object.keys(items).length, " items!");
+                        console.log(
+                            "Found ",
+                            Object.keys(items).length,
+                            " items!"
+                        );
                         console.log(items);
 
                         //let selector = new SingleBlockSelector();
@@ -119,7 +169,12 @@ export class ReviewView extends FileView {
                             .trim();
                     }
                 }
-                this.currentSubView.set(question, answer, this.file);
+                this.currentSubView.set(
+                    question,
+                    answer,
+                    this.file,
+                    fullContent
+                );
             },
             (err) => {
                 console.log("Unable to read item: " + err);
@@ -134,12 +189,17 @@ export class ReviewView extends FileView {
     }
 
     getViewType(): string {
-        return "srs-review-view";
+        return REVIEW_VIEW_TYPE;
     }
 }
 
 export interface ReviewSubView {
-    set(question: string, answer: string, file: TFile): void;
+    set(
+        question: string,
+        answer: string,
+        file: TFile,
+        fullContent: string
+    ): void;
 
     show(): void;
     hide(): void;
@@ -155,7 +215,7 @@ export class ReviewEmptyView implements ReviewSubView {
         this.containerEl.innerText = "Your queue is empty!";
     }
 
-    set(question: string, answer: string, file: TFile) {}
+    set(question: string, answer: string, file: TFile, fullContent: string) {}
 
     show() {
         this.containerEl.hidden = false;
@@ -174,7 +234,7 @@ export class ReviewQuestionView implements ReviewSubView {
     constructor(view: ReviewView) {
         let answerClick = (view: ReviewView) => {
             view.leaf.setViewState({
-                type: "srs-review-view",
+                type: REVIEW_VIEW_TYPE,
                 state: {
                     file: view.file.path,
                     mode: "answer",
@@ -213,7 +273,7 @@ export class ReviewQuestionView implements ReviewSubView {
             .setClass("srs-review-button");
     }
 
-    set(question: string, answer: string, file: TFile) {
+    set(question: string, answer: string, file: TFile, fullContent: string) {
         this.questionEl.empty();
 
         MarkdownRenderer.renderMarkdown(
@@ -241,27 +301,10 @@ export class ReviewAnswerView implements ReviewSubView {
     buttons: ButtonComponent[];
 
     constructor(view: ReviewView) {
-        let buttonClick = (view: ReviewView, s: string) => {
-            view.plugin.store.reviewId(view.item, s);
-            const item = view.plugin.store.getNext();
-            const state: any = { mode: "empty" };
-            if (item != null) {
-                const path = view.plugin.store.getFilePath(item);
-                if (path != null) {
-                    state.file = path;
-                    state.item = view.plugin.store.getNextId();
-                    state.mode = "question";
-                }
-            }
-            view.leaf.setViewState({
-                type: "srs-review-view",
-                state: state,
-            });
-        };
         this.containerEl = view.wrapperEl.createDiv("srs-review-answer");
         this.containerEl.hidden = true;
 
-        let wrapperEl = this.containerEl.createDiv('srs-qa-wrapper');
+        let wrapperEl = this.containerEl.createDiv("srs-qa-wrapper");
 
         this.questionEl = wrapperEl.createDiv("srs-question-content");
         this.answerEl = wrapperEl.createDiv("srs-answer-content");
@@ -277,7 +320,7 @@ export class ReviewAnswerView implements ReviewSubView {
                 new ButtonComponent(buttonRow)
                     .setButtonText(s)
                     .setCta()
-                    .onClick(() => buttonClick(view, s))
+                    .onClick(() => reviewItem(view, s))
                     // .setTooltip("Hotkey: " + (this.buttons.length + 1))
                     .setClass("srs-review-button")
             );
@@ -285,20 +328,11 @@ export class ReviewAnswerView implements ReviewSubView {
 
         new ButtonComponent(openFileRow)
             .setButtonText("Open File")
-            .onClick(() => {
-                const leaf = view.app.workspace.getUnpinnedLeaf();
-                leaf.setViewState({
-                    type: "markdown",
-                    state: {
-                        file: view.file.path,
-                    },
-                });
-                view.app.workspace.setActiveLeaf(leaf);
-            })
+            .onClick(() => openFile(view))
             .setClass("srs-review-button");
     }
 
-    set(question: string, answer: string, file: TFile) {
+    set(question: string, answer: string, file: TFile, fullContent: string) {
         this.questionEl.empty();
         this.answerEl.empty();
 
@@ -309,6 +343,60 @@ export class ReviewAnswerView implements ReviewSubView {
             null
         );
         MarkdownRenderer.renderMarkdown(answer, this.answerEl, file.path, null);
+    }
+
+    show() {
+        this.containerEl.hidden = false;
+    }
+
+    hide() {
+        this.containerEl.hidden = true;
+    }
+}
+
+export class ReviewSingleSidedView implements ReviewSubView {
+    containerEl: HTMLElement;
+
+    noteEl: HTMLElement;
+    buttons: ButtonComponent[];
+
+    constructor(view: ReviewView) {
+        this.containerEl = view.wrapperEl.createDiv("srs-review-single");
+        this.containerEl.hidden = true;
+
+        this.noteEl = this.containerEl.createDiv("srs-full-note-content");
+
+        let buttonDiv = this.containerEl.createDiv("srs-button-div");
+
+        let buttonRow = buttonDiv.createDiv("srs-flex-row");
+        let openFileRow = buttonDiv.createDiv("srs-flex-row");
+
+        this.buttons = [];
+        view.plugin.algorithm.srsOptions().forEach((s: string) => {
+            this.buttons.push(
+                new ButtonComponent(buttonRow)
+                    .setButtonText(s)
+                    .setCta()
+                    .onClick(() => reviewItem(view, s))
+                    .setClass("srs-review-button")
+            );
+        });
+
+        new ButtonComponent(openFileRow)
+            .setButtonText("Open File")
+            .onClick(() => openFile(view))
+            .setClass("srs-review-button");
+    }
+
+    set(question: string, answer: string, file: TFile, fullContent: string) {
+        this.noteEl.empty();
+
+        MarkdownRenderer.renderMarkdown(
+            fullContent,
+            this.noteEl,
+            file.path,
+            null
+        );
     }
 
     show() {

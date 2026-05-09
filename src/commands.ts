@@ -1,5 +1,6 @@
 import ObsidianSrsPlugin from "./main";
 import { ItemInfoModal } from "./modals/info";
+import { REVIEW_VIEW_TYPE } from "./view";
 
 export default class Commands {
     plugin: ObsidianSrsPlugin;
@@ -102,12 +103,14 @@ export default class Commands {
                     if (path != null) {
                         state.file = path;
                         state.item = plugin.store.getNextId();
-                        state.mode = "question";
+                        state.mode = plugin.settings.singleSidedNotes
+                            ? "single"
+                            : "question";
                     }
                 }
                 const leaf = plugin.app.workspace.getUnpinnedLeaf();
                 leaf.setViewState({
-                    type: "store-review-view",
+                    type: REVIEW_VIEW_TYPE,
                     state: state,
                 });
                 leaf.setPinned(true);

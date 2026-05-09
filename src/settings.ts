@@ -1,4 +1,12 @@
-import { Modal, App, Setting, Notice, PluginSettingTab, ButtonComponent, DropdownComponent } from "obsidian";
+import {
+    Modal,
+    App,
+    Setting,
+    Notice,
+    PluginSettingTab,
+    ButtonComponent,
+    DropdownComponent,
+} from "obsidian";
 import ObsidianSrsPlugin from "./main";
 
 import SrsAlgorithm from "./algorithms";
@@ -17,7 +25,7 @@ export const algorithms: Record<string, SrsAlgorithm> = {
 
 export enum DataLocation {
     PluginFolder = "In Plugin Folder",
-    RootFolder = "In Vault Folder"
+    RootFolder = "In Vault Folder",
 }
 
 const locationMap: Record<string, DataLocation> = {
@@ -25,11 +33,11 @@ const locationMap: Record<string, DataLocation> = {
     "In Plugin Folder": DataLocation.PluginFolder,
 };
 
-
 export interface SrsPluginSettings {
     maxNewPerDay: number;
     repeatItems: boolean;
     shuffleQueue: boolean;
+    singleSidedNotes: boolean;
     dataLocation: DataLocation;
     locationPath: string;
     algorithm: string;
@@ -41,6 +49,7 @@ export const DEFAULT_SETTINGS: SrsPluginSettings = {
     maxNewPerDay: 20,
     repeatItems: true,
     shuffleQueue: true,
+    singleSidedNotes: false,
     dataLocation: DataLocation.RootFolder,
     locationPath: "",
     algorithm: Object.keys(algorithms)[0],
@@ -65,6 +74,7 @@ export default class SrsSettingTab extends PluginSettingTab {
         this.addNewPerDaySetting(containerEl);
         this.addRepeatItemsSetting(containerEl);
         this.addShuffleSetting(containerEl);
+        this.addSingleSidedNotesSetting(containerEl);
         this.addDataLocationSettings(containerEl);
         this.addItemSelectionSetting(containerEl);
         this.addAlgorithmSetting(containerEl);
@@ -83,11 +93,13 @@ export default class SrsSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Data Location")
-            .setDesc("Where to store the data file for spaced repetition items.")
+            .setDesc(
+                "Where to store the data file for spaced repetition items."
+            )
             .addDropdown((dropdown) => {
                 Object.values(DataLocation).forEach((val) => {
                     dropdown.addOption(val, val);
-                })
+                });
                 dropdown.setValue(plugin.settings.dataLocation);
 
                 dropdown.onChange((val) => {
@@ -188,13 +200,33 @@ export default class SrsSettingTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName("Shuffle Queue")
             .setDesc(
-                "Whether or not the review queue order should be shuffled. If not the queue is in the order the items where added to the SRS.")
+                "Whether or not the review queue order should be shuffled. If not the queue is in the order the items where added to the SRS."
+            )
             .addToggle((toggle) => {
-                toggle.setValue(plugin.settings.shuffleQueue)
-                .onChange((newValue) => {
-                    plugin.settings.shuffleQueue = newValue;
-                    plugin.saveData(plugin.settings);
-                })
+                toggle
+                    .setValue(plugin.settings.shuffleQueue)
+                    .onChange((newValue) => {
+                        plugin.settings.shuffleQueue = newValue;
+                        plugin.saveData(plugin.settings);
+                    });
+            });
+    }
+
+    addSingleSidedNotesSetting(containerEl: HTMLElement) {
+        const plugin = this.plugin;
+
+        new Setting(containerEl)
+            .setName("Single-sided notes")
+            .setDesc(
+                "Show the full note during review and grade it immediately, instead of showing a question first and revealing an answer."
+            )
+            .addToggle((toggle) => {
+                toggle
+                    .setValue(plugin.settings.singleSidedNotes)
+                    .onChange((newValue) => {
+                        plugin.settings.singleSidedNotes = newValue;
+                        plugin.saveData(plugin.settings);
+                    });
             });
     }
 
@@ -224,34 +256,32 @@ class ItemSettingsModal extends Modal {
     }
 
     onOpen() {
-        let {titleEl, contentEl, plugin} = this;
+        let { titleEl, contentEl, plugin } = this;
 
         titleEl.createEl("h3").innerText = "Selector Settings";
 
         // TODO: Show all item selector settings
-        this.selectorList = new Array<SelectorSettings>(plugin.settings.itemSelectors.length);
+        this.selectorList = new Array<SelectorSettings>(
+            plugin.settings.itemSelectors.length
+        );
         plugin.settings.itemSelectors.forEach((selector, i) => {
             this.selectorList[i] = new SelectorSettings(contentEl, selector);
         });
 
         // TODO: Add button for adding item selector
-        new ButtonComponent(contentEl)
-            .setButtonText("Add Selector")
-            .setCta();
+        new ButtonComponent(contentEl).setButtonText("Add Selector").setCta();
 
         // TODO: Default behavior
     }
 
     onClose() {
-        let {titleEl, contentEl} = this;
+        let { titleEl, contentEl } = this;
         contentEl.empty();
         titleEl.empty();
     }
-
 }
 
 class SelectorSettings {
-
     private parentEl: HTMLElement;
     private selector: ItemSelector;
     private mainDiv: HTMLDivElement;
@@ -259,22 +289,22 @@ class SelectorSettings {
     constructor(containerEl: HTMLElement, selector: ItemSelector) {
         this.parentEl = containerEl;
         this.selector = selector;
-        this.mainDiv = this.parentEl.createDiv('selector-settings-div');
+        this.mainDiv = this.parentEl.createDiv("selector-settings-div");
         this.build();
     }
 
     private build() {
-        let {mainDiv} = this;
+        let { mainDiv } = this;
 
         mainDiv.empty();
 
-        let paragraph = mainDiv.createEl('p');
+        let paragraph = mainDiv.createEl("p");
         paragraph.innerText = "Select ";
 
         let selectorTypes: Record<string, SelectorType> = {
-            "a single block": SelectorType.SingleBlock,
-            "multiple blocks": SelectorType.MultipleBlocks,
-        }
+            "a single block": SelectorType.Split,
+            "multiple blocks": SelectorType.NextBlock,
+        };
 
         let dropdown = new DropdownComponent(mainDiv);
         for (let key in selectorTypes) {

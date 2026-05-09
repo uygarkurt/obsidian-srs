@@ -1,11 +1,11 @@
 import { TFolder, TFile, Plugin } from "obsidian";
 import { DataStore } from "./data";
-import { ReviewView } from "./view";
+import { REVIEW_VIEW_TYPE, ReviewView } from "./view";
 import SrsAlgorithm from "./algorithms";
 import SrsSettingTab from "./settings";
 import { SrsPluginSettings, DEFAULT_SETTINGS, algorithms } from "./settings";
 import Commands from "./commands";
-import { ItemSelector, SelectorType } from './selection';
+import { ItemSelector, SelectorType } from "./selection";
 
 const DEBUG: boolean = true;
 
@@ -44,7 +44,7 @@ export default class ObsidianSrsPlugin extends Plugin {
 
         this.registerEvents();
 
-        this.registerView("store-review-view", (leaf) => {
+        this.registerView(REVIEW_VIEW_TYPE, (leaf) => {
             return new ReviewView(leaf, this);
         });
 

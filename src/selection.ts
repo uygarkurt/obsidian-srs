@@ -1,9 +1,9 @@
-import {Loc, Pos, SectionCache, CachedMetadata, Notice} from 'obsidian';
-import { BlockUtils, MiscUtils } from './utils';
+import { Loc, Pos, SectionCache, CachedMetadata, Notice } from "obsidian";
+import { BlockUtils, MiscUtils } from "./utils";
 
 export interface IdInsert {
-    id: string,
-    pos: Loc
+    id: string;
+    pos: Loc;
 }
 
 export interface ItemContent {
@@ -17,56 +17,69 @@ export enum SelectorType {
     SeparateRegExp,
     NextBlock,
     Until,
-    UntilNot
+    UntilNot,
 }
 
-type BlockType = 'paragraph' | 'heading' | 'yaml' | 'thematicBreak' | 'list' | 'blockquote' | 'code';
+type BlockType =
+    | "paragraph"
+    | "heading"
+    | "yaml"
+    | "thematicBreak"
+    | "list"
+    | "blockquote"
+    | "code";
 
 type SplitData = {
     selectorType: SelectorType.Split;
     markerBlocks: BlockType[];
     splitString: string;
-}
+};
 
 type SingleRegExpData = {
     selectorType: SelectorType.SingleRegExp;
     markerBlocks: BlockType[];
-    regExp: RegExp;
-}
+    qaRegExp: RegExp;
+};
 
 type SeparateRegExpData = {
     selectorType: SelectorType.SeparateRegExp;
     markerBlocks: BlockType[];
     questionRegExp: RegExp;
     answerRegExp: RegExp;
-}
+};
 
 type NextBlockData = {
     selectorType: SelectorType.NextBlock;
     markerBlocks: BlockType[];
-}
+};
 
 type UntilData = {
     selectorType: SelectorType.Until;
     markerBlocks: BlockType[];
     answerBlocks: BlockType[];
-}
+};
 
 type UntilNotData = {
     selectorType: SelectorType.UntilNot;
     markerBlocks: BlockType[];
     answerBlocks: BlockType[];
-}
+};
 
 type SingleBlockData = SplitData | SingleRegExpData | SeparateRegExpData;
 type MultipleBlocksData = NextBlockData | UntilData | UntilNotData;
 type SelectorData = SingleBlockData | MultipleBlocksData;
 
-type ProcessorResult = {item: ItemContent, usedSections: number[] } | null;
-type Processor = (data: SelectorData, index: number, s: SectionCache[], content: string, metadata: CachedMetadata) => ProcessorResult;
+type ProcessorResult = { item: ItemContent; usedSections: number[] } | null;
+type Processor = (
+    data: SelectorData,
+    index: number,
+    s: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+) => ProcessorResult;
+type SectionWithId = SectionCache & { id?: string };
 
 export class ItemSelector {
-
     private data: SelectorData;
     private processors: Record<SelectorType, Processor> = {
         [SelectorType.NextBlock]: processNextBlock,
@@ -78,38 +91,60 @@ export class ItemSelector {
     };
 
     constructor() {
-        this.data = <NextBlockData> {
-            markerBlocks: ['heading']
+        this.data = <NextBlockData>{
+            selectorType: SelectorType.NextBlock,
+            markerBlocks: ["heading"],
         };
     }
 
-    public process(sections: SectionCache[], inserts: IdInsert[], content: string, metadata: CachedMetadata): Record<string, ItemContent> {
+    public process(
+        sections: SectionCache[],
+        inserts: IdInsert[],
+        content: string,
+        metadata: CachedMetadata
+    ): Record<string, ItemContent> {
         // Write general logic here, rename question/matched blocks to marker blocks
         // and let processors handle each detection.
         let items: Record<string, ItemContent> = {};
         let usedSections: number[] = [];
 
-        for (let i = 0; i < sections.length; i++) { 
+        for (let i = 0; i < sections.length; i++) {
             let section: SectionCache = sections[i];
 
             if (this.data.markerBlocks.contains(<BlockType>section.type)) {
-                let result = this.processors[this.data.selectorType](this.data, sections, content, metadata);
+                let result = this.processors[this.data.selectorType](
+                    this.data,
+                    i,
+                    sections,
+                    content,
+                    metadata
+                );
                 if (result != null) {
+                    let id = (<SectionWithId>section).id;
+                    if (id === undefined) {
+                        id = BlockUtils.generateBlockId();
+                        inserts.push({ id: id, pos: section.position.end });
+                    }
+                    items[id] = result.item;
+                    usedSections = usedSections.concat(result.usedSections);
                     i = result.usedSections.sort((a, b) => b - a)[0];
                 }
             }
         }
 
-        usedSections.sort((a, b) => b - a);
+        usedSections = Array.from(new Set(usedSections)).sort((a, b) => b - a);
         usedSections.forEach((i) => sections.splice(i, 1));
-        
+
         return items;
     }
 
-    public processSingle(sections: SectionCache[], inserts: IdInsert[], content: string, metadata: CachedMetadata): Record<string, ItemContent> {
-
-        
-        
+    public processSingle(
+        sections: SectionCache[],
+        inserts: IdInsert[],
+        content: string,
+        metadata: CachedMetadata
+    ): Record<string, ItemContent> {
+        return {};
     }
 }
 /*
@@ -220,36 +255,55 @@ export class SingleBlockSelector extends ItemSelector {
 }
 */
 
-function processNextBlock(rawData: SelectorData, index: number, sections: SectionCache[], content: string, metadata: CachedMetadata): ProcessorResult {
-
+function processNextBlock(
+    rawData: SelectorData,
+    index: number,
+    sections: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+): ProcessorResult {
     let data: NextBlockData = <NextBlockData>rawData;
     let section = sections[index];
     let usedSections: number[] = [index, index + 1];
-    let questionContent = content.slice(section.position.start.offset, section.position.end.offset);
+    let questionContent = content.slice(
+        section.position.start.offset,
+        section.position.end.offset
+    );
 
     if (index + 1 < sections.length) {
         let nextBlock = sections[index + 1];
-        let answerContent = content.slice(nextBlock.position.start.offset, nextBlock.position.end.offset);
+        let answerContent = content.slice(
+            nextBlock.position.start.offset,
+            nextBlock.position.end.offset
+        );
 
         let itemContent = {
             question: questionContent,
-            answer: answerContent
+            answer: answerContent,
         };
-        
+
         return {
             item: itemContent,
-            usedSections: usedSections
-        }
+            usedSections: usedSections,
+        };
     }
 
     return null;
 }
 
-function processUntil(rawData: SelectorData, index: number, sections: SectionCache[], content: string, metadata: CachedMetadata): ProcessorResult {
-
+function processUntil(
+    rawData: SelectorData,
+    index: number,
+    sections: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+): ProcessorResult {
     let data: UntilData = <UntilData>rawData;
     let section = sections[index];
-    let questionContent = content.slice(section.position.start.offset, section.position.end.offset);
+    let questionContent = content.slice(
+        section.position.start.offset,
+        section.position.end.offset
+    );
 
     let start: Loc | null = null;
     let end: Loc | null = null;
@@ -258,8 +312,7 @@ function processUntil(rawData: SelectorData, index: number, sections: SectionCac
         let block = sections[j];
         if (data.answerBlocks.contains(<BlockType>block.type)) {
             break;
-        }
-        else {
+        } else {
             if (start === null) {
                 start = block.position.start;
             }
@@ -273,23 +326,31 @@ function processUntil(rawData: SelectorData, index: number, sections: SectionCac
 
         let itemContent = {
             question: questionContent,
-            answer: answerContent
+            answer: answerContent,
         };
-        
+
         return {
             item: itemContent,
             usedSections: used,
-        }
+        };
     }
 
     return null;
 }
 
-function processUntilNot(rawData: SelectorData, index: number, sections: SectionCache[], content: string, metadata: CachedMetadata): ProcessorResult {
-
+function processUntilNot(
+    rawData: SelectorData,
+    index: number,
+    sections: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+): ProcessorResult {
     let data: UntilNotData = <UntilNotData>rawData;
     let section = sections[index];
-    let questionContent = content.slice(section.position.start.offset, section.position.end.offset);
+    let questionContent = content.slice(
+        section.position.start.offset,
+        section.position.end.offset
+    );
 
     let start: Loc | null = null;
     let end: Loc | null = null;
@@ -298,8 +359,7 @@ function processUntilNot(rawData: SelectorData, index: number, sections: Section
         let block = sections[j];
         if (!data.answerBlocks.contains(<BlockType>block.type)) {
             break;
-        }
-        else {
+        } else {
             if (start === null) {
                 start = block.position.start;
             }
@@ -313,105 +373,98 @@ function processUntilNot(rawData: SelectorData, index: number, sections: Section
 
         let itemContent = {
             question: questionContent,
-            answer: answerContent
+            answer: answerContent,
         };
-        
+
         return {
             item: itemContent,
             usedSections: used,
-        }
+        };
     }
 
     return null;
 }
 
-function processSplit(rawData: SelectorData, sections: SectionCache[], inserts: IdInsert[], content: string, metadata: CachedMetadata): Record<string, ItemContent> {
+function processSplit(
+    rawData: SelectorData,
+    index: number,
+    sections: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+): ProcessorResult {
     let data: SplitData = <SplitData>rawData;
-    let items: Record<string, ItemContent> = {};
-    let usedSections: number[] = [];
+    let section = sections[index];
+    let sectionContent = content.slice(
+        section.position.start.offset,
+        section.position.end.offset
+    );
+    let split = sectionContent.split(data.splitString, 2);
 
-    for (let i = 0; i < sections.length; i++) { 
-        let section: SectionCache = sections[i];
-
-        if (data.markerBlocks.contains(<BlockType>section.type)) {
-            let sectionContent = content.slice(section.position.start.offset, section.position.end.offset);
-            let split = sectionContent.split(data.splitString, 2);
-            if (split.length == 2) {
-                let itemContent = {
-                    question: split[0],
-                    answer: split[1]
-                }
-
-                let id = section.id;
-                if (id === undefined) {
-                    id = BlockUtils.generateBlockId();
-                    inserts.push({id: id, pos: section.position.end});
-                }
-                items[id] = itemContent;
-                usedSections.push(i);
-            }
-        }
+    if (split.length == 2) {
+        return {
+            item: {
+                question: split[0],
+                answer: split[1],
+            },
+            usedSections: [index],
+        };
     }
 
-    return {} // TODO
+    return null;
 }
 
-function processSeparateRegExp(rawData: SelectorData, sections: SectionCache[], inserts: IdInsert[], content: string, metadata: CachedMetadata): Record<string, ItemContent> {
+function processSeparateRegExp(
+    rawData: SelectorData,
+    index: number,
+    sections: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+): ProcessorResult {
     let data: SeparateRegExpData = <SeparateRegExpData>rawData;
-    let items: Record<string, ItemContent> = {};
-    let usedSections: number[] = [];
+    let section = sections[index];
+    let sectionContent = content.slice(
+        section.position.start.offset,
+        section.position.end.offset
+    );
 
-    for (let i = 0; i < sections.length; i++) { 
-        let section: SectionCache = sections[i];
+    let questionMatch = sectionContent.match(data.questionRegExp);
+    let answerMatch = sectionContent.match(data.answerRegExp);
+    if (questionMatch !== null && answerMatch !== null) {
+        return {
+            item: {
+                question: questionMatch[1],
+                answer: answerMatch[1],
+            },
+            usedSections: [index],
+        };
+    }
 
-        if (data.markerBlocks.contains(<BlockType>section.type)) {
-            let sectionContent = content.slice(section.position.start.offset, section.position.end.offset);
-
-            let questionMatch = sectionContent.match(data.questionRegExp);
-            let answerMatch = sectionContent.match(data.answerRegExp);
-            if (questionMatch !== null && answerMatch !== null) {
-                let itemContent = {
-                    question: questionMatch[1],
-                    answer: answerMatch[1],
-                }
-
-                let id = section.id;
-                if (id === undefined) {
-                    id = BlockUtils.generateBlockId();
-                    inserts.push({id: id, pos: section.position.end});
-                }
-                items[id] = itemContent;
-                usedSections.push(i);
-            }
-
-    return {} // TODO
+    return null;
 }
 
-function processSingleRegExp(rawData: SelectorData, sections: SectionCache[], inserts: IdInsert[], content: string, metadata: CachedMetadata): Record<string, ItemContent> {
+function processSingleRegExp(
+    rawData: SelectorData,
+    index: number,
+    sections: SectionCache[],
+    content: string,
+    metadata: CachedMetadata
+): ProcessorResult {
     let data: SingleRegExpData = <SingleRegExpData>rawData;
-    let items: Record<string, ItemContent> = {};
-    let usedSections: number[] = [];
+    let section = sections[index];
+    let sectionContent = content.slice(
+        section.position.start.offset,
+        section.position.end.offset
+    );
+    let match = sectionContent.match(data.qaRegExp);
+    if (match !== null) {
+        return {
+            item: {
+                question: match[1],
+                answer: match[2],
+            },
+            usedSections: [index],
+        };
+    }
 
-    for (let i = 0; i < sections.length; i++) { 
-        let section: SectionCache = sections[i];
-
-        if (data.markerBlocks.contains(<BlockType>section.type)) {
-            let sectionContent = content.slice(section.position.start.offset, section.position.end.offset);
-            let match = sectionContent.match(data.qaRegExp);
-            if (match !== null) {
-                let itemContent = {
-                    question: match[1],
-                    answer: match[2],
-                }
-
-                let id = section.id;
-                if (id === undefined) {
-                    id = BlockUtils.generateBlockId();
-                    inserts.push({id: id, pos: section.position.end});
-                }
-                items[id] = itemContent;
-                usedSections.push(i);
-            }
-
-    return {} // TODO
+    return null;
 }

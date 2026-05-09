@@ -8,6 +8,13 @@
     overflow: auto;
 }
 
+.srs-full-note-content {
+    position: absolute;
+    height: 67%;
+    width: 100%;
+    overflow: auto;
+}
+
 .srs-button-div {
     position: absolute;
     bottom: 0;
