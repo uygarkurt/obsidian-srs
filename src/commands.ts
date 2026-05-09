@@ -1,5 +1,6 @@
 import ObsidianSrsPlugin from "./main";
 import { ItemInfoModal } from "./modals/info";
+import { TrackedItemsModal } from "./modals/tracked";
 import { REVIEW_VIEW_TYPE } from "./view";
 
 export default class Commands {
@@ -88,6 +89,14 @@ export default class Commands {
             name: "Build Queue",
             callback: () => {
                 plugin.store.buildQueue();
+            },
+        });
+
+        plugin.addCommand({
+            id: "show-tracked-notes",
+            name: "Show Tracked Notes",
+            callback: () => {
+                new TrackedItemsModal(plugin).open();
             },
         });
 

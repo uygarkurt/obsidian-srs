@@ -5,7 +5,8 @@ import { DataLocation } from "./settings";
 import { TFile, TFolder, Notice } from "obsidian";
 
 const ROOT_DATA_PATH: string = "./tracked_files.json";
-const PLUGIN_DATA_PATH: string = "./.obsidian/plugins/obsidian-recall/tracked_files.json";
+const PLUGIN_DATA_PATH: string =
+    "./.obsidian/plugins/obsidian-recall/tracked_files.json";
 
 /**
  * SrsData.
@@ -95,6 +96,20 @@ export interface ReviewResult {
     nextReview: number;
 }
 
+export interface TrackedReviewItem {
+    itemId: number;
+    cardId: string;
+    path: string;
+    title: string;
+    nextReview: number;
+    timesReviewed: number;
+    timesCorrect: number;
+    errorStreak: number;
+    queued: boolean;
+    repeating: boolean;
+    due: boolean;
+}
+
 const DEFAULT_SRS_DATA: SrsData = {
     queue: [],
     repeatQueue: [],
@@ -154,7 +169,6 @@ export class DataStore {
         }
     }
 
-
     /**
      * moveStoreLocation.
      *
@@ -171,22 +185,26 @@ export class DataStore {
 
         try {
             this.save();
-            adapter.remove(this.dataPath).then(() => {
-                this.dataPath = newPath;
-                new Notice("Successfully moved data file!");
-                return true;
-            }, (e) => {
-                this.dataPath = newPath;
-                new Notice("Unable to delete old data file, please delete it manually.");
-                console.log(e);
-                return true;
-            })
+            adapter.remove(this.dataPath).then(
+                () => {
+                    this.dataPath = newPath;
+                    new Notice("Successfully moved data file!");
+                    return true;
+                },
+                (e) => {
+                    this.dataPath = newPath;
+                    new Notice(
+                        "Unable to delete old data file, please delete it manually."
+                    );
+                    console.log(e);
+                    return true;
+                }
+            );
         } catch (e) {
             new Notice("Unable to move data file!");
             console.log(e);
             return false;
         }
-
     }
 
     /**
@@ -345,7 +363,58 @@ export class DataStore {
             return this.data.trackedFiles[item.fileIndex];
         }
         return null;
-    } 
+    }
+
+    getTrackedReviewItems(): TrackedReviewItem[] {
+        const now = new Date().getTime();
+        let result: TrackedReviewItem[] = [];
+
+        this.data.trackedFiles.forEach((file) => {
+            if (file == null) {
+                return;
+            }
+
+            for (let cardId in file.items) {
+                const itemId = file.items[cardId];
+                const item = this.data.items[itemId];
+                if (item == null) {
+                    continue;
+                }
+
+                result.push({
+                    itemId,
+                    cardId,
+                    path: file.path,
+                    title: this.getTitleFromPath(file.path),
+                    nextReview: item.nextReview,
+                    timesReviewed: item.timesReviewed,
+                    timesCorrect: item.timesCorrect,
+                    errorStreak: item.errorStreak,
+                    queued: this.isQueued(itemId),
+                    repeating: this.isInRepeatQueue(itemId),
+                    due: item.nextReview == 0 || item.nextReview <= now,
+                });
+            }
+        });
+
+        return result.sort((a, b) => {
+            if (a.due != b.due) {
+                return a.due ? -1 : 1;
+            }
+
+            if (a.nextReview != b.nextReview) {
+                return a.nextReview - b.nextReview;
+            }
+
+            return a.title.localeCompare(b.title);
+        });
+    }
+
+    getTitleFromPath(path: string): string {
+        const parts = path.split("/");
+        const name = parts[parts.length - 1] || path;
+        return name.replace(/\.md$/i, "");
+    }
 
     /**
      * getNext.
@@ -676,37 +745,38 @@ export class DataStore {
 
         let untrackedFiles = 0;
         let removedItems = 0;
-        
-        await Promise.all(this.data.items.map((item, id) => {
-            if (item != null) {
-                let file = this.getFileForItem(item);
-                return this.verify(file).then((exists) => {
-                    if (!exists) {
-                        removedItems += this.untrackFile(file.path, false);
-                        untrackedFiles += 1;
-                    }
-                    else {
-                        if (item.nextReview == 0) {
-                            // This is a new item.
-                            if (maxNew == -1 || data.newAdded < maxNew) {
-                                item.nextReview = now.getTime();
-                                data.newAdded += 1;
-                                data.queue.push(id);
-                                newAdd += 1;
-                            }
-                        } else if (item.nextReview <= now.getTime()) {
-                            if (this.isInRepeatQueue(id)) {
-                                data.repeatQueue.remove(id);
-                            }
-                            if (!this.isQueued(id)) {
-                                data.queue.push(id);
-                                oldAdd += 1;
+
+        await Promise.all(
+            this.data.items.map((item, id) => {
+                if (item != null) {
+                    let file = this.getFileForItem(item);
+                    return this.verify(file).then((exists) => {
+                        if (!exists) {
+                            removedItems += this.untrackFile(file.path, false);
+                            untrackedFiles += 1;
+                        } else {
+                            if (item.nextReview == 0) {
+                                // This is a new item.
+                                if (maxNew == -1 || data.newAdded < maxNew) {
+                                    item.nextReview = now.getTime();
+                                    data.newAdded += 1;
+                                    data.queue.push(id);
+                                    newAdd += 1;
+                                }
+                            } else if (item.nextReview <= now.getTime()) {
+                                if (this.isInRepeatQueue(id)) {
+                                    data.repeatQueue.remove(id);
+                                }
+                                if (!this.isQueued(id)) {
+                                    data.queue.push(id);
+                                    oldAdd += 1;
+                                }
                             }
                         }
-                    }
-                });
-            }
-        }));
+                    });
+                }
+            })
+        );
 
         this.data.lastQueue = now.getTime();
         if (this.plugin.settings.shuffleQueue && oldAdd + newAdd > 0) {
@@ -720,9 +790,15 @@ export class DataStore {
                 newAdd +
                 " new!"
         );
-        
+
         if (untrackedFiles > 0) {
-            new Notice("Recall: Untracked " + untrackedFiles + " files with a total of " + removedItems + " items while building queue!");
+            new Notice(
+                "Recall: Untracked " +
+                    untrackedFiles +
+                    " files with a total of " +
+                    removedItems +
+                    " items while building queue!"
+            );
         }
     }
 
@@ -734,12 +810,10 @@ export class DataStore {
     verify(file: TrackedFile): Promise<boolean> {
         const adapter = this.plugin.app.vault.adapter;
         if (file != null) {
-            return adapter.exists(file.path).catch(
-                (reason) => {
-                    console.error("Unable to verify file: ", file.path);
-                    return false;
-                }
-            );
+            return adapter.exists(file.path).catch((reason) => {
+                console.error("Unable to verify file: ", file.path);
+                return false;
+            });
         }
     }
 
