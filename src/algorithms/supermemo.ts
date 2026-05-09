@@ -1,4 +1,4 @@
-import { DateUtils } from "src/utils";
+import { DateUtils } from "../utils";
 import SrsAlgorithm from "./../algorithms";
 import { RepetitionItem, ReviewResult } from "./../data";
 

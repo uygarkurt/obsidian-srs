@@ -15,6 +15,10 @@
     overflow: auto;
 }
 
+.srs-full-note-title h1 {
+    margin-top: 0;
+}
+
 .srs-button-div {
     position: absolute;
     bottom: 0;

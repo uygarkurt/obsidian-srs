@@ -1,5 +1,5 @@
 import { Modal, TFile } from "obsidian";
-import ObsidianSrsPlugin from "src/main";
+import ObsidianSrsPlugin from "../main";
 import { DataStore } from "../data";
 
 export class ItemInfoModal extends Modal {

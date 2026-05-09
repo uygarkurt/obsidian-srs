@@ -358,6 +358,8 @@ export class ReviewSingleSidedView implements ReviewSubView {
     containerEl: HTMLElement;
 
     noteEl: HTMLElement;
+    titleEl: HTMLElement;
+    bodyEl: HTMLElement;
     buttons: ButtonComponent[];
 
     constructor(view: ReviewView) {
@@ -365,6 +367,8 @@ export class ReviewSingleSidedView implements ReviewSubView {
         this.containerEl.hidden = true;
 
         this.noteEl = this.containerEl.createDiv("srs-full-note-content");
+        this.titleEl = this.noteEl.createDiv("srs-full-note-title");
+        this.bodyEl = this.noteEl.createDiv("srs-full-note-body");
 
         let buttonDiv = this.containerEl.createDiv("srs-button-div");
 
@@ -389,11 +393,16 @@ export class ReviewSingleSidedView implements ReviewSubView {
     }
 
     set(question: string, answer: string, file: TFile, fullContent: string) {
-        this.noteEl.empty();
+        this.titleEl.empty();
+        this.bodyEl.empty();
+
+        this.titleEl.createEl("h1", {
+            text: file.basename,
+        });
 
         MarkdownRenderer.renderMarkdown(
             fullContent,
-            this.noteEl,
+            this.bodyEl,
             file.path,
             null
         );
