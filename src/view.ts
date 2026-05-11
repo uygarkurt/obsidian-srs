@@ -24,6 +24,7 @@ function openFile(view: ReviewView) {
 
 function reviewItem(view: ReviewView, option: string) {
     view.plugin.store.reviewId(view.item, option);
+    view.plugin.decorateFileExplorer();
     const item = view.plugin.store.getNext();
     const state: any = { mode: "empty" };
     if (item != null) {

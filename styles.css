@@ -131,3 +131,20 @@
 .srs-tracked-actions {
     flex: 0 0 auto;
 }
+
+.srs-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    flex-shrink: 0;
+    vertical-align: middle;
+    opacity: 0.85;
+}
+
+.srs-dot-new    { background-color: var(--text-faint); }
+.srs-dot-red    { background-color: var(--color-red); }
+.srs-dot-orange { background-color: var(--color-orange); }
+.srs-dot-blue   { background-color: var(--color-blue); }
+.srs-dot-green  { background-color: var(--color-green); }

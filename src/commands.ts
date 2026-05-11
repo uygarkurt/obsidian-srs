@@ -40,6 +40,7 @@ export default class Commands {
                         if (!checking) {
                             plugin.store.trackFile(file.path);
                             plugin.updateStatusBar();
+                            plugin.decorateFileExplorer();
                         }
                         return true;
                     }
@@ -58,6 +59,7 @@ export default class Commands {
                         if (!checking) {
                             plugin.store.untrackFile(file.path);
                             plugin.updateStatusBar();
+                            plugin.decorateFileExplorer();
                         }
                         return true;
                     }
@@ -88,7 +90,9 @@ export default class Commands {
             id: "build-queue",
             name: "Build Queue",
             callback: () => {
-                plugin.store.buildQueue();
+                plugin.store.buildQueue().then(() => {
+                    plugin.decorateFileExplorer();
+                });
             },
         });
 
