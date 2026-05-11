@@ -42,14 +42,14 @@ Every tracked note displays a small colored dot to the left of its name in the f
 **Example:**
 
 ```
-> History
-    > World War II
-        • Operation Overlord         (no dot — untracked)
-        🔴 Battle of Stalingrad      (red — struggling)
-        🟠 Causes of the War         (orange — hard)
-        🔵 The Marshall Plan         (blue — good)
-        🟢 Treaty of Versailles      (green — easy)
-        ⚪ Pacific Theater           (gray — never reviewed)
+> Mathematics
+    > Calculus
+          Chain Rule               (no dot — untracked)
+        🔴 Integration by Parts    (red — struggling)
+        🟠 Taylor Series           (orange — hard)
+        🔵 Limits                  (blue — good)
+        🟢 Derivatives             (green — easy)
+        ⚪ Fourier Transform        (gray — never reviewed)
 ```
 
 The dot updates whenever the queue is built or a review session is completed.
