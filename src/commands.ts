@@ -108,25 +108,36 @@ export default class Commands {
             id: "review-view",
             name: "Review",
             callback: () => {
-                plugin.store.buildQueue();
-                const item = plugin.store.getNext();
-                const state: any = { mode: "empty" };
-                if (item != null) {
-                    const path = plugin.store.getFilePath(item);
-                    if (path != null) {
-                        state.file = path;
-                        state.item = plugin.store.getNextId();
-                        state.mode = "single";
-                    }
-                }
-                const leaf = plugin.app.workspace.getUnpinnedLeaf();
-                leaf.setViewState({
-                    type: REVIEW_VIEW_TYPE,
-                    state: state,
-                });
-                leaf.setPinned(true);
-                plugin.app.workspace.setActiveLeaf(leaf);
+                this.startReview();
             },
+        });
+    }
+
+    showTrackedNotes() {
+        new TrackedItemsModal(this.plugin).open();
+    }
+
+    startReview() {
+        const plugin = this.plugin;
+        plugin.store.buildQueue().then(() => {
+            plugin.decorateFileExplorer();
+            const item = plugin.store.getNext();
+            const state: any = { mode: "empty" };
+            if (item != null) {
+                const path = plugin.store.getFilePath(item);
+                if (path != null) {
+                    state.file = path;
+                    state.item = plugin.store.getNextId();
+                    state.mode = "single";
+                }
+            }
+            const leaf = plugin.app.workspace.getUnpinnedLeaf();
+            leaf.setViewState({
+                type: REVIEW_VIEW_TYPE,
+                state: state,
+            });
+            leaf.setPinned(true);
+            plugin.app.workspace.setActiveLeaf(leaf);
         });
     }
 
