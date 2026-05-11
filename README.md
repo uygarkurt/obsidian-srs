@@ -1,107 +1,116 @@
-# Recall - Spaced Repetition System in Obsidian!
-This plugin for [Obsidian](https://obsidian.md/) implements a spaced repetition system for reviewing information, with any SRS algorithm.
+# obsidian-srs
 
-See [planned features](https://github.com/martin-jw/obsidian-recall#planned-features) for upcoming updates. To request a feature that isn't already planned, or to report a bug, please [raise an issue](https://github.com/martin-jw/obsidian-recall/issues).
+A spaced repetition plugin for [Obsidian](https://obsidian.md/). Track your notes and review them on a schedule — the plugin shows you each note in full and asks you to grade how well you recalled it. The review interval is then adjusted automatically based on your response.
 
-## Quick Guide
+This is a fork of [martin-jw/obsidian-recall](https://github.com/martin-jw/obsidian-recall), significantly reworked with a single-sided review model and various improvements.
 
-1. [install](https://github.com/martin-jw/obsidian-recall#installation) the plugin.
+---
 
-2. Select the [algorithm](https://github.com/martin-jw/obsidian-recall#algorithms) you want to use.
+## How it works
 
-3. Start [tracking notes](https://github.com/martin-jw/obsidian-recall#tracking-notes).
+1. **Track** the notes you want to memorize.
+2. **Review** them when they come due — the full note is shown and you grade yourself.
+3. The algorithm schedules the next review based on your grade.
 
-4. [Review](https://github.com/martin-jw/obsidian-recall#review) them!
+Tracking data is stored in a separate `tracked_files.json` file, so your notes themselves are never modified.
+
+---
 
 ## Installation
-The plugin is not yet available in Obsidian's community plugin section, so until then the plugin has to be installed manually.
 
-### Manual installation
-In your vault, navigate to `.obsidian/plugins` and create a folder called `obsidian-recall`. Add the `main.js`, `manifest.json` and `styles.css` files from the [latest release](https://github.com/martin-jw/obsidian-recall/releases) to the folder.
+The plugin is not available in the Obsidian community plugin directory yet. Install it manually:
+
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/uygarkurt/obsidian-srs/releases).
+2. In your vault, navigate to `.obsidian/plugins/` and create a folder called `obsidian-srs`.
+3. Place the three downloaded files into that folder.
+4. Open Obsidian → Settings → Community plugins → enable **obsidian-srs**.
+
+---
 
 ## Tracking notes
-This plugin tracks notes for review in a separate file called `tracked_files.json` in a configurable location. This means that you don't need to make any changes to a note that you want to review. To track a note, either right-click a note in the file explorer and click `Track Note`, or run the command `SRS: Track Note` to track the currently active file.
 
-You can also recursively track all notes in a folder by right-clicking a folder in the explorer and pressing `Track All Notes`.
+Right-click any note or folder in the file explorer:
 
-**Currently, the top-most header of the file will be taken as the question of the note.** If there are no headers the file name will be used. This will most likely be changed very soon.
+| Action | Description |
+|---|---|
+| **Track Note** | Add the note to the SRS |
+| **Untrack Note** | Remove the note and reset all its progress |
+| **Track All Notes** | Recursively track every note in a folder |
+| **Untrack All Notes** | Recursively untrack every note in a folder |
 
-### Untracking notes
+Untracking a note permanently removes its review history.
 
-Untracking notes is done the same way, simply right-click a note in the explorer and click `Untrack Note`, or run the command `SRS: Untrack Note`.
+---
 
-You can also recursively remove all notes in a folder from the SRS by right-clicking the folder in the explorer and pressing `Untrack All Notes`.
+## Commands
 
-Note that untracking a note removes all information regarding the note from the system, and any progress will therefore be reset.
+All commands are available via the Command Palette (`Cmd/Ctrl + P`) under the `SRS:` prefix and can be bound to hotkeys in Settings → Hotkeys.
 
-### The status bar
+| Command | Description |
+|---|---|
+| **SRS: Review** | Build the queue and open the review view |
+| **SRS: Track Note** | Track the currently active note |
+| **SRS: Untrack Note** | Untrack the currently active note |
+| **SRS: Update Note** | Refresh item data for the currently active note |
+| **SRS: Build Queue** | Rebuild the review queue manually |
+| **SRS: Show Tracked Notes** | Open a list of all tracked notes with their review status |
 
-This plugin adds a status to the status bar of Obsidian. This status changes depending on which note is being viewed:
-- When viewing a tracked note, it shows when that note is next to be reviewed.
-- When viewing an untracked note, it shows the number of notes currently in the queue.
-- When in Review, it shows the number of items remaining in the review.
+---
 
-## Reviewing Items
-To review due items, run the `SRS: Review` command. This will build the queue and open up the review view, and any items due for review will be shown.
+## Review
 
-### Adding hotkeys
-Any of the `SRS:` commands can be bound to hotkeys in the Obsidian `Hotkeys` section of the settings. There are currently not hotkeys for the different responses of the review view, however it is planned.
+Run **SRS: Review** to start a session. The full note is shown and you grade yourself using the buttons at the bottom. The available grades depend on the algorithm selected:
+
+- **Anki / SM2**: Again, Hard, Good, Easy
+- **Leitner**: Wrong, Correct
+
+The next review date is calculated automatically after each grade.
+
+### Status bar
+
+The status bar shows context-aware information:
+
+- Viewing a **tracked note**: shows when it is next due for review.
+- Viewing an **untracked note**: shows the total number of notes in the queue.
+- **During review**: shows the number of items remaining in the session.
+
+---
 
 ## Algorithms
 
-This plugin uses a modular way of adding algorithms. This means that you can choose which algorithm to use for reviews depending on your needs. Currently, only a few algorithms are implemented. If you want to request a specific algorithm to be added please file a [feature request](https://github.com/martin-jw/obsidian-recall/issues). If you feel like an algorithm is behaving incorrectly or is missing something, plase [report a bug](https://github.com/martin-jw/obsidian-recall/issues).
-
-### Changing algorithms
-
-Since SRS algorithms can be quite different, an algorithm can define it's own data to use track with the repetition items. This means that different algorithms could have conflicting data, and as such switching algorithms when you already have existing items could set back, reset or alter the review intervals for existing items.
-
-Because of this, switching algorithms currently requires a reload of the plugin.
-
-## Currently available algorithms
+Choose your algorithm in Settings → Algorithm. Switching algorithms after you have existing items may alter review intervals and requires a plugin reload.
 
 ### Anki
 
-This is an implementation of the [Anki algorithm](https://faqs.ankiweb.net/what-spaced-repetition-algorithm.html). 
-
-It uses the same data structure as the SM2 algorithm, and as such you can switch between them without losing data.
-
-#### Settings
-
-For more details of the settings available see [Anki's documentation](https://docs.ankiweb.net/#/deck-options).
+An implementation of the [Anki algorithm](https://faqs.ankiweb.net/what-spaced-repetition-algorithm.html). Shares its data format with SM2, so switching between the two is safe.
 
 ### SM2
 
-An implementation of SuperMemo's algorithm, [SM2](https://www.supermemo.com/en/archives1990-2015/english/ol/sm2). This is the algorithm that Anki's algorithm is based on.
-
-This algorithm currently exposes no settings. It uses the same data structure as the Anki algorithm, and as such you can switch between them without losing data.
+An implementation of [SuperMemo's SM2](https://www.supermemo.com/en/archives1990-2015/english/ol/sm2), the basis for Anki's algorithm. No additional settings. Shares data format with Anki.
 
 ### Leitner
 
-This is an implementation of the [Leitner System](https://www.wikiwand.com/en/Leitner_system), also known as the shoebox method. Items are separated into "boxes" (called stages in the settings) and each box has a set interval of time between reviews. 
+An implementation of the [Leitner System](https://en.wikipedia.org/wiki/Leitner_system). Notes are sorted into stages, each with its own review interval. Correct answers advance a note to the next stage; incorrect answers return it to the first stage.
 
-When an item is marked as correct it graduates to the next stage. If an item is marked as wrong it is returned to the first stage.
+**Settings:**
+- **Stages** — Number of stages.
+- **Reset When Incorrect** — Move back to stage 1 on incorrect, or just one stage back.
+- **Timings** — Review interval for each stage.
 
-#### Settings
+---
 
-**Stages** - The number of stages. Changing this updates the maximum number of stages available to the system.
+## Settings
 
-**Reset When Incorrect** - Whether or not to move back to the initial stage when incorrect, or simply move back one stage.
+| Setting | Description |
+|---|---|
+| **New Per Day** | Maximum number of new (never reviewed) notes added to the queue each day. Set to `-1` for unlimited. |
+| **Repeat Items** | Re-queue items marked incorrect until they are answered correctly in the same session. |
+| **Shuffle Queue** | Randomize the order of the review queue. |
+| **Data Location** | Where to store `tracked_files.json` — in the vault root or the plugin folder. |
+| **Algorithm** | Which SRS algorithm to use. |
 
-**Timings** - The timings of each stage.
+---
 
-# Planned Features
+## Credits
 
-These are features currently planned, without any inherent order of priority:
-
-- [ ] Multiple items per note.
-  - [ ] Extract separate headings as separate questions and SRS items.
-- [ ] More ways to identify repetition items
-  - [ ] Flashcard style: `question::answer`
-  - [ ] Different levels of headings
-  - [ ] Dividers
-  - [ ] Cloze deletions?
-- [ ] Custom queues and reviews.
-  - [ ] Leverage Obsidian's search filters to specify which notes to review, and review notes without updating their status.
-- [ ] Expose more of the SRS data to the user.
-  - [ ] Show lists of all the current items in the SRS.
-  - [ ] Expose the data of items and allow the user to change it manually.
+Based on [obsidian-recall](https://github.com/martin-jw/obsidian-recall) by [martin-jw](https://github.com/martin-jw), licensed under MIT.
