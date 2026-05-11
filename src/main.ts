@@ -1,4 +1,4 @@
-import { TFolder, TFile, Plugin } from "obsidian";
+import { TFolder, TFile, Plugin, Menu } from "obsidian";
 import { DataStore } from "./data";
 import { REVIEW_VIEW_TYPE, ReviewView } from "./view";
 import SrsAlgorithm from "./algorithms";
@@ -39,6 +39,47 @@ export default class ObsidianSrsPlugin extends Plugin {
 
         this.barItem = this.addStatusBarItem();
         this.updateStatusBar();
+
+        this.addRibbonIcon("brain", "Recall", (evt: MouseEvent) => {
+            const menu = new Menu();
+
+            menu.addItem((item) =>
+                item
+                    .setTitle("Start Review")
+                    .setIcon("play")
+                    .onClick(() => this.commands.startReview())
+            );
+
+            menu.addItem((item) =>
+                item
+                    .setTitle("Show Tracked Notes")
+                    .setIcon("list")
+                    .onClick(() => this.commands.showTrackedNotes())
+            );
+
+            menu.addItem((item) =>
+                item
+                    .setTitle("Build Queue")
+                    .setIcon("refresh-cw")
+                    .onClick(() =>
+                        this.store.buildQueue().then(() => {
+                            this.decorateFileExplorer();
+                        })
+                    )
+            );
+
+            menu.addSeparator();
+
+            const queueSize = this.store.queueSize() + this.store.repeatQueueSize();
+            menu.addItem((item) =>
+                item
+                    .setTitle(`Queue: ${queueSize} due`)
+                    .setIcon("info")
+                    .setDisabled(true)
+            );
+
+            menu.showAtMouseEvent(evt);
+        });
 
         this.addSettingTab(new SrsSettingTab(this.app, this));
 
@@ -93,12 +134,14 @@ export default class ObsidianSrsPlugin extends Plugin {
             this.barItem.setText(text);
         } else {
             let file = this.app.workspace.getActiveFile();
-            let text = "Queue: " + this.store.queueSize();
+            let text = "Queue: " + (this.store.queueSize() + this.store.repeatQueueSize());
 
             if (file == null) {
-                this.barItem.setText(text);
+                this.barItem.setText("");
             } else {
-                if (this.store.isTracked(file.path)) {
+                if (!this.store.isTracked(file.path)) {
+                    this.barItem.setText("");
+                } else if (this.store.isTracked(file.path)) {
                     const items = this.store.getItemsOfFile(file.path);
                     let mostRecent = Number.MAX_SAFE_INTEGER;
                     items.forEach((item) => {
@@ -122,8 +165,6 @@ export default class ObsidianSrsPlugin extends Plugin {
 
                     this.barItem.setText(text);
                     this.barItem.addClass("srs-bar-tracked");
-                } else {
-                    this.barItem.setText(text);
                 }
             }
         }

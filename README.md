@@ -71,6 +71,21 @@ Untracking a note permanently removes its review history.
 
 ---
 
+## Ribbon button
+
+A brain icon (🧠) in the left ribbon provides quick access to all plugin actions. Click it to open a dropdown menu:
+
+| Item | Description |
+|---|---|
+| **Start Review** | Build the queue and begin a review session |
+| **Show Tracked Notes** | Open the tracked notes list |
+| **Build Queue** | Rebuild the review queue |
+| *Queue: N due* | Current number of cards due (informational) |
+
+> If the ribbon is not visible, enable it in **Settings → Appearance → Show ribbon**.
+
+---
+
 ## Commands
 
 All commands are available via the Command Palette (`Cmd/Ctrl + P`) under the `SRS:` prefix and can be bound to hotkeys in Settings → Hotkeys.
