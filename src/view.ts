@@ -226,12 +226,34 @@ export class ReviewEmptyView implements ReviewSubView {
     }
 }
 
+function registerLinkClickHandler(el: HTMLElement, view: ReviewView) {
+    el.addEventListener("click", (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const anchor = target.closest("a");
+        if (!anchor) return;
+
+        const href = anchor.getAttribute("data-href") || anchor.getAttribute("href");
+        if (!href) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (anchor.classList.contains("internal-link")) {
+            view.app.workspace.openLinkText(href, view.file?.path ?? "", false);
+        } else {
+            window.open(href, "_blank");
+        }
+    });
+}
+
 export class ReviewQuestionView implements ReviewSubView {
     containerEl: HTMLElement;
-
     questionEl: HTMLElement;
+    view: ReviewView;
 
     constructor(view: ReviewView) {
+        this.view = view;
+
         let answerClick = (view: ReviewView) => {
             view.leaf.setViewState({
                 type: REVIEW_VIEW_TYPE,
@@ -247,6 +269,7 @@ export class ReviewQuestionView implements ReviewSubView {
         this.containerEl.hidden = true;
 
         this.questionEl = this.containerEl.createDiv("srs-question-content");
+        registerLinkClickHandler(this.questionEl, view);
 
         let buttonDiv = this.containerEl.createDiv("srs-button-div");
 
@@ -280,7 +303,7 @@ export class ReviewQuestionView implements ReviewSubView {
             "# " + question,
             this.questionEl,
             file.path,
-            null
+            this.view
         );
     }
 
@@ -295,12 +318,13 @@ export class ReviewQuestionView implements ReviewSubView {
 
 export class ReviewAnswerView implements ReviewSubView {
     containerEl: HTMLElement;
-
     questionEl: HTMLElement;
     answerEl: HTMLElement;
     buttons: ButtonComponent[];
+    view: ReviewView;
 
     constructor(view: ReviewView) {
+        this.view = view;
         this.containerEl = view.wrapperEl.createDiv("srs-review-answer");
         this.containerEl.hidden = true;
 
@@ -308,6 +332,7 @@ export class ReviewAnswerView implements ReviewSubView {
 
         this.questionEl = wrapperEl.createDiv("srs-question-content");
         this.answerEl = wrapperEl.createDiv("srs-answer-content");
+        registerLinkClickHandler(wrapperEl, view);
 
         let buttonDiv = this.containerEl.createDiv("srs-button-div");
 
@@ -340,9 +365,9 @@ export class ReviewAnswerView implements ReviewSubView {
             "# " + question,
             this.questionEl,
             file.path,
-            null
+            this.view
         );
-        MarkdownRenderer.renderMarkdown(answer, this.answerEl, file.path, null);
+        MarkdownRenderer.renderMarkdown(answer, this.answerEl, file.path, this.view);
     }
 
     show() {
@@ -356,19 +381,21 @@ export class ReviewAnswerView implements ReviewSubView {
 
 export class ReviewSingleSidedView implements ReviewSubView {
     containerEl: HTMLElement;
-
     noteEl: HTMLElement;
     titleEl: HTMLElement;
     bodyEl: HTMLElement;
     buttons: ButtonComponent[];
+    view: ReviewView;
 
     constructor(view: ReviewView) {
+        this.view = view;
         this.containerEl = view.wrapperEl.createDiv("srs-review-single");
         this.containerEl.hidden = true;
 
         this.noteEl = this.containerEl.createDiv("srs-full-note-content");
         this.titleEl = this.noteEl.createDiv("srs-full-note-title");
         this.bodyEl = this.noteEl.createDiv("srs-full-note-body");
+        registerLinkClickHandler(this.noteEl, view);
 
         let buttonDiv = this.containerEl.createDiv("srs-button-div");
 
@@ -404,7 +431,7 @@ export class ReviewSingleSidedView implements ReviewSubView {
             fullContent,
             this.bodyEl,
             file.path,
-            null
+            this.view
         );
     }
 

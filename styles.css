@@ -3,9 +3,9 @@
 }
 
 .srs-qa-wrapper {
-    position: absolute;
-    height: 67%;
-    overflow: auto;
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
 }
 
 .srs-full-note-content {
@@ -20,18 +20,15 @@
 }
 
 .srs-button-div {
-    position: absolute;
-    bottom: 0;
+    flex-shrink: 0;
     width: 100%;
-
-    height: 33%;
-    max-height: 400px;
     display: flex;
     flex-flow: column wrap;
     justify-content: flex-start;
     align-items: flex-start;
 
     padding-top: 20px;
+    padding-bottom: 20px;
 
     border-top-width: 3px;
     border-top-style: solid;
@@ -48,11 +45,18 @@
 }
 
 .srs-review-wrapper {
-    position: relative;
-    max-width: 700px;
-    min-height: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.srs-review-answer,
+.srs-review-question {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
 }
 
 .timings-setting-item {
