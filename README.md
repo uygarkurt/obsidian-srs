@@ -27,6 +27,35 @@ The plugin is not available in the Obsidian community plugin directory yet. Inst
 
 ---
 
+## File explorer indicators
+
+Every tracked note displays a small colored dot to the left of its name in the file explorer. The dot reflects how well you know that note based on its Anki ease value:
+
+| Dot | Meaning |
+|---|---|
+| Gray | Never reviewed yet |
+| Red | Struggling — ease below 1.9, or currently in the repeat queue |
+| Orange | Hard — ease 1.9–2.3 |
+| Blue | Good — ease 2.3–2.8 |
+| Green | Easy — ease above 2.8 |
+
+**Example:**
+
+```
+> Deep Learning
+    > General Concepts
+        • Attention Mechanism        (no dot — untracked)
+        🔴 Gradient Descent          (red — struggling)
+        🟠 Normalization             (orange — hard)
+        🔵 Transformers Overview     (blue — good)
+        🟢 Weight Decay              (green — easy)
+        ⚪ Decoding Strategies       (gray — never reviewed)
+```
+
+The dot updates whenever the queue is built or a review session is completed.
+
+---
+
 ## Tracking notes
 
 Right-click any note or folder in the file explorer:

@@ -3,12 +3,12 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import copy from "rollup-plugin-copy";
 
-import config from './config';
+const BUILD_DIR = "/private/tmp/obsidian-recall-build";
 
 export default {
     input: "src/main.ts",
     output: {
-        dir: ".",
+        dir: BUILD_DIR,
         sourcemap: "inline",
         format: "cjs",
         exports: "default",
@@ -20,19 +20,10 @@ export default {
         commonjs(),
         copy({
             targets: [
-                {
-                    src: "manifest.json",
-                    dest: config['vault-path'],
-                },
-                {
-                    src: "styles.css",
-                    dest: config['vault-path'],
-                },
-                {
-                    src: "main.js",
-                    dest: config['vault-path'],
-                },
+                { src: "manifest.json", dest: BUILD_DIR },
+                { src: "styles.css", dest: BUILD_DIR },
             ],
+            hook: "writeBundle",
         }),
     ],
 };

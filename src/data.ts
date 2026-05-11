@@ -325,6 +325,43 @@ export class DataStore {
     }
 
     /**
+     * getFileIndicatorClass.
+     *
+     * @param {string} path
+     * @returns {string | null}
+     */
+    getFileIndicatorClass(path: string): string | null {
+        const index = this.getFileIndex(path);
+        if (index === -1) return null;
+        const file = this.data.trackedFiles[index];
+        if (file == null) return null;
+
+        const itemIds = Object.values(file.items);
+        if (itemIds.length === 0) return null;
+
+        const itemId = itemIds[0];
+        const item = this.data.items[itemId];
+        if (item == null) return null;
+
+        if (item.timesReviewed === 0) return "srs-dot-new";
+        if (this.isInRepeatQueue(itemId)) return "srs-dot-red";
+
+        const ease = item.data?.ease;
+        if (ease != null) {
+            if (ease < 1.9) return "srs-dot-red";
+            if (ease < 2.3) return "srs-dot-orange";
+            if (ease < 2.8) return "srs-dot-blue";
+            return "srs-dot-green";
+        }
+
+        const ratio = item.timesCorrect / item.timesReviewed;
+        if (ratio < 0.5) return "srs-dot-red";
+        if (ratio < 0.7) return "srs-dot-orange";
+        if (ratio < 0.85) return "srs-dot-blue";
+        return "srs-dot-green";
+    }
+
+    /**
      * Returns when the given item is reviewed next (in hours).
      */
     /**

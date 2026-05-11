@@ -51,6 +51,10 @@ export default class ObsidianSrsPlugin extends Plugin {
         this.registerInterval(
             window.setInterval(() => this.store.save(), 5 * 60 * 1000)
         );
+
+        this.app.workspace.onLayoutReady(() => {
+            this.decorateFileExplorer();
+        });
     }
 
     onunload() {
@@ -125,10 +129,45 @@ export default class ObsidianSrsPlugin extends Plugin {
         }
     }
 
+    decorateFileExplorer() {
+        setTimeout(() => {
+            document
+                .querySelectorAll(".srs-dot")
+                .forEach((el) => el.remove());
+
+            document
+                .querySelectorAll<HTMLElement>(".nav-file-title")
+                .forEach((el) => {
+                    const path =
+                        el.getAttribute("data-path") || el.dataset.path;
+                    if (!path) return;
+                    const cls = this.store.getFileIndicatorClass(path);
+                    if (cls) {
+                        const dot = document.createElement("span");
+                        dot.className = `srs-dot ${cls}`;
+                        const titleContent = el.querySelector(
+                            ".nav-file-title-content"
+                        );
+                        if (titleContent) {
+                            el.insertBefore(dot, titleContent);
+                        } else {
+                            el.prepend(dot);
+                        }
+                    }
+                });
+        }, 50);
+    }
+
     registerEvents() {
         this.registerEvent(
             this.app.workspace.on("file-open", (f) => {
                 this.updateStatusBar();
+            })
+        );
+
+        this.registerEvent(
+            this.app.workspace.on("layout-change", () => {
+                this.decorateFileExplorer();
             })
         );
 
@@ -142,6 +181,7 @@ export default class ObsidianSrsPlugin extends Plugin {
                         item.setTitle("Track All Notes");
                         item.onClick((evt) => {
                             this.store.trackFilesInFolder(folder);
+                            this.decorateFileExplorer();
                         });
                     });
 
@@ -150,6 +190,7 @@ export default class ObsidianSrsPlugin extends Plugin {
                         item.setTitle("Untrack All Notes");
                         item.onClick((evt) => {
                             this.store.untrackFilesInFolder(folder);
+                            this.decorateFileExplorer();
                         });
                     });
                 } else if (file instanceof TFile) {
@@ -159,6 +200,7 @@ export default class ObsidianSrsPlugin extends Plugin {
                             item.setTitle("Untrack Note");
                             item.onClick((evt) => {
                                 this.store.untrackFile(file.path);
+                                this.decorateFileExplorer();
                             });
                         });
                     } else {
@@ -167,6 +209,7 @@ export default class ObsidianSrsPlugin extends Plugin {
                             item.setTitle("Track Note");
                             item.onClick((evt) => {
                                 this.store.trackFile(file.path);
+                                this.decorateFileExplorer();
                             });
                         });
                     }
