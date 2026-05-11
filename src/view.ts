@@ -170,7 +170,7 @@ export class ReviewSingleSidedView implements ReviewSubView {
 
         this.noteEl = this.containerEl.createDiv("srs-full-note-content");
         this.titleEl = this.noteEl.createDiv("srs-full-note-title");
-        this.bodyEl = this.noteEl.createDiv("srs-full-note-body");
+        this.bodyEl = this.noteEl.createDiv("srs-full-note-body markdown-preview-view markdown-rendered");
         registerLinkClickHandler(this.noteEl, view);
 
         let buttonDiv = this.containerEl.createDiv("srs-button-div");
