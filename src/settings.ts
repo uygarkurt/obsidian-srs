@@ -37,7 +37,6 @@ export interface SrsPluginSettings {
     maxNewPerDay: number;
     repeatItems: boolean;
     shuffleQueue: boolean;
-    singleSidedNotes: boolean;
     dataLocation: DataLocation;
     locationPath: string;
     algorithm: string;
@@ -49,7 +48,6 @@ export const DEFAULT_SETTINGS: SrsPluginSettings = {
     maxNewPerDay: 20,
     repeatItems: true,
     shuffleQueue: true,
-    singleSidedNotes: false,
     dataLocation: DataLocation.RootFolder,
     locationPath: "",
     algorithm: Object.keys(algorithms)[0],
@@ -74,7 +72,6 @@ export default class SrsSettingTab extends PluginSettingTab {
         this.addNewPerDaySetting(containerEl);
         this.addRepeatItemsSetting(containerEl);
         this.addShuffleSetting(containerEl);
-        this.addSingleSidedNotesSetting(containerEl);
         this.addDataLocationSettings(containerEl);
         this.addItemSelectionSetting(containerEl);
         this.addAlgorithmSetting(containerEl);
@@ -207,24 +204,6 @@ export default class SrsSettingTab extends PluginSettingTab {
                     .setValue(plugin.settings.shuffleQueue)
                     .onChange((newValue) => {
                         plugin.settings.shuffleQueue = newValue;
-                        plugin.saveData(plugin.settings);
-                    });
-            });
-    }
-
-    addSingleSidedNotesSetting(containerEl: HTMLElement) {
-        const plugin = this.plugin;
-
-        new Setting(containerEl)
-            .setName("Single-sided notes")
-            .setDesc(
-                "Show the full note during review and grade it immediately, instead of showing a question first and revealing an answer."
-            )
-            .addToggle((toggle) => {
-                toggle
-                    .setValue(plugin.settings.singleSidedNotes)
-                    .onChange((newValue) => {
-                        plugin.settings.singleSidedNotes = newValue;
                         plugin.saveData(plugin.settings);
                     });
             });

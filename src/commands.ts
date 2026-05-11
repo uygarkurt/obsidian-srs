@@ -112,9 +112,7 @@ export default class Commands {
                     if (path != null) {
                         state.file = path;
                         state.item = plugin.store.getNextId();
-                        state.mode = plugin.settings.singleSidedNotes
-                            ? "single"
-                            : "question";
+                        state.mode = "single";
                     }
                 }
                 const leaf = plugin.app.workspace.getUnpinnedLeaf();
