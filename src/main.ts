@@ -262,6 +262,13 @@ export default class ObsidianSrsPlugin extends Plugin {
                 } else if (file instanceof TFile) {
                     if (this.store.isTracked(file.path)) {
                         menu.addItem((item) => {
+                            item.setIcon("play");
+                            item.setTitle("Review Note");
+                            item.onClick(() => {
+                                this.commands.reviewNote(file);
+                            });
+                        });
+                        menu.addItem((item) => {
                             item.setIcon("minus-with-circle");
                             item.setTitle("Untrack Note");
                             item.onClick((evt) => {
