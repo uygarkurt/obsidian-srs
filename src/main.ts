@@ -17,6 +17,7 @@ export default class ObsidianSrsPlugin extends Plugin {
     commands: Commands;
 
     barItem: HTMLElement;
+    private explorerObserver: MutationObserver | null = null;
 
     async onload() {
         console.log("Loading Obsidian Recall...");
@@ -95,12 +96,14 @@ export default class ObsidianSrsPlugin extends Plugin {
 
         this.app.workspace.onLayoutReady(() => {
             this.decorateFileExplorer();
+            this.observeFileExplorer();
         });
     }
 
     onunload() {
         console.log("Unloading Obsidian Recall. Saving tracked files...");
         this.store.save();
+        this.explorerObserver?.disconnect();
     }
 
     async loadSettings() {
@@ -197,6 +200,28 @@ export default class ObsidianSrsPlugin extends Plugin {
                     }
                 });
         }, 50);
+    }
+
+    observeFileExplorer() {
+        const container = document.querySelector(".nav-files-container");
+        if (!container) return;
+
+        this.explorerObserver = new MutationObserver((mutations) => {
+            const hasNewFiles = mutations.some((m) =>
+                Array.from(m.addedNodes).some(
+                    (n) =>
+                        n instanceof HTMLElement &&
+                        (n.classList.contains("nav-file-title") ||
+                            n.querySelector(".nav-file-title"))
+                )
+            );
+            if (hasNewFiles) this.decorateFileExplorer();
+        });
+
+        this.explorerObserver.observe(container, {
+            childList: true,
+            subtree: true,
+        });
     }
 
     registerEvents() {
