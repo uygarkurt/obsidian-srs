@@ -1,3 +1,4 @@
+import { TFile } from "obsidian";
 import ObsidianSrsPlugin from "./main";
 import { ItemInfoModal } from "./modals/info";
 import { TrackedItemsModal } from "./modals/tracked";
@@ -139,6 +140,19 @@ export default class Commands {
             leaf.setPinned(true);
             plugin.app.workspace.setActiveLeaf(leaf);
         });
+    }
+
+    reviewNote(file: TFile) {
+        const plugin = this.plugin;
+        const ids = plugin.store.getItemIdsForFile(file.path);
+        if (ids.length === 0) return;
+        const leaf = plugin.app.workspace.getUnpinnedLeaf();
+        leaf.setViewState({
+            type: REVIEW_VIEW_TYPE,
+            state: { mode: "standalone", file: file.path, item: ids[0] },
+        });
+        leaf.setPinned(true);
+        plugin.app.workspace.setActiveLeaf(leaf);
     }
 
     addDebugCommands() {

@@ -63,11 +63,16 @@ Right-click any note or folder in the file explorer:
 | Action | Description |
 |---|---|
 | **Track Note** | Add the note to the SRS |
+| **Review Note** | Review this note immediately, outside the normal queue |
 | **Untrack Note** | Remove the note and reset all its progress |
 | **Track All Notes** | Recursively track every note in a folder |
 | **Untrack All Notes** | Recursively untrack every note in a folder |
 
 Untracking a note permanently removes its review history.
+
+### Reviewing a single note
+
+Right-clicking a tracked note and choosing **Review Note** opens a review panel for that note immediately — regardless of whether it is currently due. Grade it as normal; the panel closes automatically when done. The global review queue is not affected.
 
 ---
 

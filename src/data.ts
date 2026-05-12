@@ -395,6 +395,14 @@ export class DataStore {
         return result;
     }
 
+    getItemIdsForFile(path: string): number[] {
+        const fileIndex = this.getFileIndex(path);
+        if (fileIndex < 0) return [];
+        const file = this.data.trackedFiles[fileIndex];
+        if (!file) return [];
+        return Object.values(file.items) as number[];
+    }
+
     getFileForItem(item: RepetitionItem): TrackedFile {
         if (item != null) {
             return this.data.trackedFiles[item.fileIndex];

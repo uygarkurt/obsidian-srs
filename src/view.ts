@@ -9,7 +9,7 @@ import {
 import ObsidianSrsPlugin from "./main";
 
 export const REVIEW_VIEW_TYPE = "store-review-view";
-export type ReviewMode = "single" | "empty";
+export type ReviewMode = "single" | "standalone" | "empty";
 
 function openFile(view: ReviewView) {
     const leaf = view.app.workspace.getUnpinnedLeaf();
@@ -25,6 +25,12 @@ function openFile(view: ReviewView) {
 function reviewItem(view: ReviewView, option: string) {
     view.plugin.store.reviewId(view.item, option);
     view.plugin.decorateFileExplorer();
+
+    if (view.mode === "standalone") {
+        view.leaf.detach();
+        return;
+    }
+
     const item = view.plugin.store.getNext();
     const state: any = { mode: "empty" };
     if (item != null) {
@@ -88,6 +94,7 @@ export class ReviewView extends FileView {
         this.currentSubView.hide();
         this.currentSubView = this.singleSidedSubView;
         this.currentSubView.show();
+        // "standalone" renders the same as "single" but closes the leaf after grading
 
         this.app.vault.cachedRead(this.file).then(
             (content) => {
