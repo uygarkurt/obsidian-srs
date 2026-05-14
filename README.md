@@ -4,6 +4,8 @@ A spaced repetition plugin for [Obsidian](https://obsidian.md/). Track your note
 
 This is a fork of [martin-jw/obsidian-recall](https://github.com/martin-jw/obsidian-recall), significantly reworked with a single-sided review model and various improvements.
 
+> **Note:** All code in this fork is written and maintained by AI.
+
 ---
 
 ## How it works
