@@ -536,6 +536,7 @@ export class DataStore {
                 }
             }
         }
+        this.save();
     }
 
     /**
