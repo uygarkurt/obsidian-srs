@@ -96,6 +96,8 @@ export class AnkiAlgorithm extends SrsAlgorithm {
             } else {
                 nextInterval =
                     data.lastInterval * data.ease * this.settings.easyBonus;
+                if (nextInterval - data.lastInterval < 1)
+                    nextInterval = data.lastInterval + 1;
             }
         }
 

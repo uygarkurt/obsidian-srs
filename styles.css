@@ -55,6 +55,10 @@
     overflow: hidden;
 }
 
+.srs-review-single[hidden] {
+    display: none;
+}
+
 .timings-setting-item {
     display: flex;
     align-items: flex-start;
