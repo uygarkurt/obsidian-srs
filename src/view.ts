@@ -143,6 +143,66 @@ export class ReviewEmptyView implements ReviewSubView {
     }
 }
 
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "bmp", "svg", "webp", "avif"];
+const AUDIO_EXTENSIONS = ["mp3", "wav", "m4a", "ogg", "3gp", "flac"];
+const VIDEO_EXTENSIONS = ["mp4", "webm", "ogv", "mov", "mkv"];
+
+// MarkdownRenderer.renderMarkdown leaves ![[...]] embeds as placeholder spans
+// holding just the link text; outside a real markdown view nothing loads them,
+// so media files have to be filled in manually.
+function renderEmbeds(view: ReviewView, containerEl: HTMLElement, sourcePath: string) {
+    containerEl.findAll("span.internal-embed").forEach((el) => {
+        if (el.querySelector("img, audio, video")) return;
+
+        const src = el.getAttribute("src");
+        if (src == null) return;
+
+        const target = view.app.metadataCache.getFirstLinkpathDest(
+            src.split("#")[0],
+            sourcePath
+        );
+        if (target == null) return;
+
+        const extension = target.extension.toLowerCase();
+        const resourcePath = view.app.vault.getResourcePath(target);
+
+        if (IMAGE_EXTENSIONS.indexOf(extension) >= 0) {
+            el.empty();
+            const img = el.createEl("img", { attr: { src: resourcePath } });
+            if (el.hasAttribute("width")) {
+                img.setAttribute("width", el.getAttribute("width"));
+            }
+            if (el.hasAttribute("alt")) {
+                img.setAttribute("alt", el.getAttribute("alt"));
+            }
+            el.addClasses(["image-embed", "media-embed", "is-loaded"]);
+        } else if (AUDIO_EXTENSIONS.indexOf(extension) >= 0) {
+            el.empty();
+            el.createEl("audio", { attr: { controls: "", src: resourcePath } });
+            el.addClasses(["media-embed", "is-loaded"]);
+        } else if (VIDEO_EXTENSIONS.indexOf(extension) >= 0) {
+            el.empty();
+            el.createEl("video", { attr: { controls: "", src: resourcePath } });
+            el.addClasses(["media-embed", "is-loaded"]);
+        }
+    });
+
+    // Markdown-style image links (![](path)) come out with vault-relative src
+    // attributes that the webview can't load.
+    containerEl.findAll("img").forEach((el) => {
+        const src = el.getAttribute("src");
+        if (src == null || src.indexOf("://") >= 0) return;
+
+        const target = view.app.metadataCache.getFirstLinkpathDest(
+            decodeURIComponent(src),
+            sourcePath
+        );
+        if (target != null) {
+            el.setAttribute("src", view.app.vault.getResourcePath(target));
+        }
+    });
+}
+
 function registerLinkClickHandler(el: HTMLElement, view: ReviewView) {
     el.addEventListener("click", (event: MouseEvent) => {
         const target = event.target as HTMLElement;
@@ -203,7 +263,7 @@ export class ReviewSingleSidedView implements ReviewSubView {
             .setClass("srs-review-button");
     }
 
-    set(file: TFile, fullContent: string) {
+    async set(file: TFile, fullContent: string) {
         this.titleEl.empty();
         this.bodyEl.empty();
 
@@ -211,12 +271,13 @@ export class ReviewSingleSidedView implements ReviewSubView {
             text: file.basename,
         });
 
-        MarkdownRenderer.renderMarkdown(
+        await MarkdownRenderer.renderMarkdown(
             fullContent,
             this.bodyEl,
             file.path,
             this.view
         );
+        renderEmbeds(this.view, this.bodyEl, file.path);
     }
 
     show() {
