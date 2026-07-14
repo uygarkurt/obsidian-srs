@@ -1,0 +1,4 @@
+interface:
+  display_name: "Install Obsidian Plugin"
+  short_description: "Install and verify Obsidian Recall"
+  default_prompt: "Use $install-obsidian-plugin to install the Obsidian plugin from main and verify it with me."
