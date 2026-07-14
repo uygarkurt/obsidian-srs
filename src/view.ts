@@ -41,10 +41,13 @@ function reviewItem(view: ReviewView, option: string) {
             state.mode = "single";
         }
     }
-    view.leaf.setViewState({
-        type: REVIEW_VIEW_TYPE,
-        state: state,
-    });
+    // Advance in place via the view's own setState rather than
+    // leaf.setViewState(): the latter marks the workspace layout dirty and
+    // writes .obsidian/workspace.json on every single grade, which during a
+    // review session fires dozens of times back-to-back and is a likely
+    // trigger for iCloud's "configuration files updated" reload prompt on
+    // mobile.
+    view.setState(state, {});
 }
 
 export class ReviewView extends FileView {
